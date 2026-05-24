@@ -1,123 +1,227 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuerpo de Bomberos — República Dominicana</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--red:#C8102E;--red-dark:#8B0000;--red-glow:#FF1A3C;--gold:#F5A623;--black:#0D0D0D;--panel-bg:rgba(13,13,13,0.95);--text:#F0E8E0;--text-dim:#A09090;--border:#3A1A1A;}
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Barlow',sans-serif;background:var(--black);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
-    /* HEADER */
-    header{position:relative;z-index:1000;background:linear-gradient(135deg,var(--red-dark) 0%,var(--red) 60%,#A00020 100%);padding:0 1.5rem;height:62px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 20px rgba(200,16,46,0.6);flex-shrink:0;}
-    header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.03) 40px,rgba(255,255,255,0.03) 41px);pointer-events:none;}
-    .header-left{display:flex;align-items:center;gap:12px;}
-    .header-emblem{width:42px;height:42px;background:var(--black);border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 0 12px rgba(245,166,35,0.4);flex-shrink:0;}
-    .header-title{display:flex;flex-direction:column;line-height:1;}
-    .header-title span:first-child{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.1rem,3vw,1.5rem);letter-spacing:0.08em;color:#fff;}
-    .header-title span:last-child{font-size:0.65rem;letter-spacing:0.15em;color:var(--gold);text-transform:uppercase;opacity:0.9;}
-    .header-right{display:flex;align-items:center;gap:0.6rem;}
-    #admin-badge{display:none;align-items:center;gap:6px;background:rgba(245,166,35,0.15);border:1px solid var(--gold);border-radius:4px;padding:4px 10px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);}
-    #admin-badge.show{display:flex;}
-    .mode-btn{background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.2s;white-space:nowrap;}
-    .mode-btn:hover{background:rgba(200,16,46,0.6);border-color:var(--red-glow);}
-    .mode-btn.active{background:var(--red-dark);border-color:var(--gold);color:var(--gold);}
-    .mode-btn.logout{border-color:#555;color:#aaa;font-size:0.65rem;padding:5px 8px;}
-    .mode-btn.logout:hover{background:#333;border-color:#777;color:#fff;}
-    /* LOADING */
-    #loading-screen{position:fixed;inset:0;background:var(--black);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
-    .ls-icon{font-size:3rem;animation:pulse 1.2s ease-in-out infinite;}
-    .ls-text{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.15em;color:var(--text-dim);}
-    .ls-bar{width:200px;height:3px;background:#1a0000;border-radius:2px;overflow:hidden;}
-    .ls-fill{height:100%;background:var(--red);border-radius:2px;animation:bar 1.4s ease-in-out infinite;}
-    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
-    @keyframes bar{0%{width:0;}60%{width:100%;}100%{width:100%;opacity:0;}}
-    /* MAIN */
-    main{flex:1;display:flex;overflow:hidden;position:relative;}
-    #map{flex:1;z-index:1;}
-    .leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,0.6)!important;color:#aaa!important;}
-    .leaflet-control-attribution a{color:#ccc!important;}
-    /* PANEL */
-    #panel{position:absolute;top:0;right:0;height:100%;width:340px;background:var(--panel-bg);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);z-index:500;backdrop-filter:blur(12px);}
-    #panel.open{transform:translateX(0);}
-    .panel-close{position:absolute;top:10px;right:10px;width:36px;height:36px;background:var(--red);border:none;border-radius:50%;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.5);transition:background 0.2s,transform 0.15s;}
-    .panel-close:hover{background:var(--red-dark);transform:scale(1.1);}
-    @media(min-width:641px){.panel-close{right:auto;left:-44px;top:14px;border-radius:6px 0 0 6px;width:38px;height:38px;}}
-    .panel-photo{position:relative;height:190px;overflow:hidden;flex-shrink:0;}
-    .panel-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-    .panel-photo::after{content:'';position:absolute;inset:0;border:5px solid var(--red);pointer-events:none;box-shadow:inset 0 0 20px rgba(200,16,46,0.5);}
-    .photo-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#1a0000,#2a0808);display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--red);opacity:0.7;}
-    .panel-body{flex:1;overflow-y:auto;padding:1.2rem;}
-    .panel-body::-webkit-scrollbar{width:4px;}
-    .panel-body::-webkit-scrollbar-thumb{background:var(--red);border-radius:2px;}
-    .station-name{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.05em;line-height:1;color:#fff;margin-bottom:4px;}
-    .station-number{display:inline-block;background:var(--red);color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:2px;margin-bottom:1rem;}
-    .info-grid{display:grid;gap:0.7rem;margin-bottom:1rem;}
-    .info-row{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start;}
-    .info-icon{width:28px;height:28px;background:rgba(200,16,46,0.15);border:1px solid rgba(200,16,46,0.3);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;margin-top:2px;}
-    .info-content label{display:block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);margin-bottom:1px;}
-    .info-content span{font-size:0.875rem;font-weight:600;color:var(--text);}
-    .divider{height:1px;background:var(--border);margin:0.8rem 0;}
-    .units-section h3{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.08em;color:var(--gold);margin-bottom:0.6rem;}
-    .units-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;}
-    .unit-card{background:rgba(200,16,46,0.08);border:1px solid rgba(200,16,46,0.2);border-radius:4px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
-    .unit-icon{font-size:1.1rem;}
-    .unit-info{font-size:0.75rem;line-height:1.3;}
-    .unit-info strong{display:block;color:#fff;font-weight:700;}
-    .unit-info span{color:var(--text-dim);}
-    .admin-actions{display:none;}
-    .admin-actions.show{display:block;}
-    .edit-btn{width:100%;margin-top:0.8rem;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:4px;color:var(--text-dim);font-family:'Barlow',sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.2s;text-align:center;}
-    .edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,0.05);}
-    /* TOAST */
-    #save-toast{position:fixed;bottom:20px;right:20px;z-index:5000;background:#1a3a1a;border:1px solid #4caf50;border-radius:6px;padding:10px 16px;font-size:0.78rem;color:#81c784;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
-    #save-toast.show{display:flex;}
-    #save-toast.error{background:#3a1a1a;border-color:var(--red);color:#ef9a9a;}
-    /* LEGEND */
-    #legend{position:absolute;bottom:24px;left:16px;z-index:400;background:var(--panel-bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px;backdrop-filter:blur(10px);min-width:170px;}
-    #legend h4{font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:0.1em;color:var(--gold);margin-bottom:8px;}
-    .legend-item{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:5px;}
-    .legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
-    /* MARKERS */
-    .fire-marker{width:36px;height:36px;background:var(--red);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(200,16,46,0.7);cursor:pointer;}
-    .fire-marker.selected{box-shadow:0 0 0 3px rgba(200,16,46,0.5),0 3px 14px rgba(200,16,46,0.9);}
-    .fire-marker .marker-inner{transform:rotate(45deg);font-size:1rem;margin-top:-2px;}
-    .cistern-marker{width:30px;height:30px;background:#1565C0;border:2.5px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(21,101,192,0.7);font-size:0.9rem;cursor:pointer;}
-    /* EDIT TOOLBAR */
-    #edit-toolbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:600;background:var(--panel-bg);border:1px solid var(--gold);border-radius:6px;padding:8px 16px;display:none;align-items:center;gap:10px;backdrop-filter:blur(10px);white-space:nowrap;}
-    #edit-toolbar.show{display:flex;}
-    #edit-toolbar span{font-size:0.75rem;color:var(--gold);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;}
-    .tb-btn{background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.72rem;font-weight:600;text-transform:uppercase;transition:all 0.2s;}
-    .tb-btn:hover,.tb-btn.active{background:var(--red);}
-    .tb-btn.cistern{border-color:#1565C0;background:rgba(21,101,192,0.2);}
-    .tb-btn.cistern:hover,.tb-btn.cistern.active{background:#1565C0;}
-    /* MODALS */
-    .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:3000;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px);}
-    .modal-ov.show{display:flex;}
-    .modal-box{background:#140303;border:1px solid var(--red);border-radius:10px;padding:1.8rem;width:100%;max-width:380px;box-shadow:0 0 60px rgba(200,16,46,0.25);max-height:90dvh;overflow-y:auto;}
-    .modal-box.blue{background:#020d1a;border-color:#1565C0;}
-    .modal-box h2{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--gold);margin-bottom:1rem;}
-    .modal-box.blue h2{color:#64B5F6;}
-    .mf{margin-bottom:0.8rem;}
-    .mf label{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);margin-bottom:4px;}
-    .mf input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.875rem;padding:8px 10px;outline:none;transition:border-color 0.2s;}
-    .mf input:focus{border-color:var(--red);}
-    .m-actions{display:flex;gap:8px;margin-top:1rem;}
-    .m-actions button{flex:1;padding:9px;border:none;border-radius:4px;font-family:'Barlow',sans-serif;font-size:0.8rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
-    .m-actions .save-btn{background:var(--red);color:#fff;}
-    .m-actions .save-btn.blue{background:#1565C0;}
-    .m-actions .cancel-btn{background:#2a2a2a;color:var(--text-dim);}
-    .m-actions button:hover{opacity:0.85;}
-    #login-error{color:var(--red-glow);font-size:0.75rem;text-align:center;margin-bottom:0.6rem;min-height:1rem;}
-    .login-note{font-size:0.72rem;text-align:center;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.4rem;}
-    .login-cancel{display:block;text-align:center;margin-top:0.8rem;font-size:0.72rem;color:var(--text-dim);cursor:pointer;text-decoration:underline;}
-    @media(max-width:640px){#panel{width:100%;border-left:none;border-top:1px solid var(--border);}#legend{bottom:12px;left:10px;padding:8px 10px;}}
-    @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Cuerpo de Bomberos — República Dominicana</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src https://*.googleapis.com https://*.firebaseio.com https://*.firestore.googleapis.com https://*.openstreetmap.org;">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#C8102E;--red-dark:#8B0000;--red-glow:#FF1A3C;
+  --gold:#F5A623;--black:#0D0D0D;--panel-bg:rgba(13,13,13,0.96);
+  --text:#F0E8E0;--text-dim:#A09090;--border:#3A1A1A;
+  --sub-color:#1565C0;--sub-light:#1976D2;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:var(--black);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── LOADING ── */
+#loading-screen{position:fixed;inset:0;background:var(--black);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+.ls-icon{font-size:3rem;animation:pulse 1.2s ease-in-out infinite;}
+.ls-text{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.15em;color:var(--text-dim);}
+.ls-bar{width:200px;height:3px;background:#1a0000;border-radius:2px;overflow:hidden;}
+.ls-fill{height:100%;background:var(--red);animation:bar 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+@keyframes bar{0%{width:0;}60%{width:100%;}100%{width:100%;opacity:0;}}
+
+/* ── HEADER ── */
+header{position:relative;z-index:1000;background:linear-gradient(135deg,var(--red-dark) 0%,var(--red) 60%,#A00020 100%);padding:0 1.5rem;height:62px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 20px rgba(200,16,46,0.6);flex-shrink:0;}
+header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.03) 40px,rgba(255,255,255,0.03) 41px);pointer-events:none;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header-emblem{width:42px;height:42px;background:var(--black);border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 0 12px rgba(245,166,35,0.4);flex-shrink:0;}
+.header-title{display:flex;flex-direction:column;line-height:1;}
+.header-title span:first-child{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.1rem,3vw,1.5rem);letter-spacing:0.08em;color:#fff;}
+.header-title span:last-child{font-size:0.65rem;letter-spacing:0.15em;color:var(--gold);text-transform:uppercase;opacity:0.9;}
+.header-right{display:flex;align-items:center;gap:0.5rem;}
+#admin-badge{display:none;align-items:center;gap:6px;background:rgba(245,166,35,0.15);border:1px solid var(--gold);border-radius:4px;padding:4px 10px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);}
+#admin-badge.show{display:flex;}
+.mode-btn{background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.2s;white-space:nowrap;}
+.mode-btn:hover{background:rgba(200,16,46,0.6);border-color:var(--red-glow);}
+.mode-btn.active{background:var(--red-dark);border-color:var(--gold);color:var(--gold);}
+.mode-btn.logout{border-color:#555;color:#aaa;font-size:0.65rem;padding:5px 8px;}
+.mode-btn.logout:hover{background:#333;border-color:#777;color:#fff;}
+.mode-btn.dashboard-btn{border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,0.1);}
+.mode-btn.dashboard-btn:hover{background:rgba(245,166,35,0.25);}
+
+/* ── MAIN ── */
+main{flex:1;display:flex;overflow:hidden;position:relative;}
+#map{flex:1;z-index:1;}
+.leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,0.6)!important;color:#aaa!important;}
+.leaflet-control-attribution a{color:#ccc!important;}
+
+/* ── PANEL ── */
+#panel{position:absolute;top:0;right:0;height:100%;width:340px;background:var(--panel-bg);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);z-index:500;backdrop-filter:blur(12px);}
+#panel.open{transform:translateX(0);}
+.panel-close{position:absolute;top:10px;right:10px;width:36px;height:36px;background:var(--red);border:none;border-radius:50%;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.5);transition:background 0.2s,transform 0.15s;}
+.panel-close:hover{background:var(--red-dark);transform:scale(1.1);}
+@media(min-width:641px){.panel-close{right:auto;left:-44px;top:14px;border-radius:6px 0 0 6px;width:38px;height:38px;}}
+.panel-photo{position:relative;height:190px;overflow:hidden;flex-shrink:0;cursor:pointer;}
+.panel-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.panel-photo::after{content:'';position:absolute;inset:0;border:5px solid var(--red);pointer-events:none;box-shadow:inset 0 0 20px rgba(200,16,46,0.5);}
+.panel-photo.substation::after{border-color:var(--sub-color);}
+.photo-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#1a0000,#2a0808);display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--red);opacity:0.7;}
+.photo-placeholder.sub{background:linear-gradient(135deg,#000d1a,#001a2a);color:var(--sub-light);}
+.photo-edit-hint{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;font-size:0.75rem;color:#fff;letter-spacing:0.1em;text-transform:uppercase;z-index:5;}
+.panel-photo:hover .photo-edit-hint.visible{display:flex;}
+#photo-upload-input{display:none;}
+.panel-body{flex:1;overflow-y:auto;padding:1.2rem;}
+.panel-body::-webkit-scrollbar{width:4px;}
+.panel-body::-webkit-scrollbar-thumb{background:var(--red);border-radius:2px;}
+.station-name{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.05em;line-height:1;color:#fff;margin-bottom:4px;}
+.station-number{display:inline-block;background:var(--red);color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:2px;margin-bottom:1rem;}
+.station-number.sub{background:var(--sub-color);}
+.station-type-badge{display:inline-block;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-left:6px;vertical-align:middle;}
+.station-type-badge.main{background:rgba(200,16,46,0.2);color:var(--red);border:1px solid var(--red);}
+.station-type-badge.sub{background:rgba(21,101,192,0.2);color:#64B5F6;border:1px solid var(--sub-color);}
+.info-grid{display:grid;gap:0.7rem;margin-bottom:1rem;}
+.info-row{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start;}
+.info-icon{width:28px;height:28px;background:rgba(200,16,46,0.15);border:1px solid rgba(200,16,46,0.3);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;margin-top:2px;}
+.info-content label{display:block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);margin-bottom:1px;}
+.info-content span{font-size:0.875rem;font-weight:600;color:var(--text);}
+.divider{height:1px;background:var(--border);margin:0.8rem 0;}
+.units-section h3{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.08em;color:var(--gold);margin-bottom:0.6rem;}
+.units-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;}
+.unit-card{background:rgba(200,16,46,0.08);border:1px solid rgba(200,16,46,0.2);border-radius:4px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.unit-icon{font-size:1.1rem;}
+.unit-info{font-size:0.75rem;line-height:1.3;}
+.unit-info strong{display:block;color:#fff;font-weight:700;}
+.unit-info span{color:var(--text-dim);}
+.admin-actions{display:none;margin-top:0.8rem;}
+.admin-actions.show{display:block;}
+.edit-btn{width:100%;margin-top:0.4rem;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:4px;color:var(--text-dim);font-family:'Barlow',sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.2s;text-align:center;}
+.edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,0.05);}
+.edit-btn.danger:hover{border-color:var(--red);color:var(--red-glow);background:rgba(200,16,46,0.05);}
+
+/* ── TOAST ── */
+#save-toast{position:fixed;bottom:20px;right:20px;z-index:5000;background:#1a3a1a;border:1px solid #4caf50;border-radius:6px;padding:10px 16px;font-size:0.78rem;color:#81c784;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
+#save-toast.show{display:flex;}
+#save-toast.error{background:#3a1a1a;border-color:var(--red);color:#ef9a9a;}
+
+/* ── LEGEND ── */
+#legend{position:absolute;bottom:24px;left:16px;z-index:400;background:var(--panel-bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px;backdrop-filter:blur(10px);min-width:180px;}
+#legend h4{font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:0.1em;color:var(--gold);margin-bottom:8px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:5px;}
+.legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+
+/* ── MARKERS ── */
+.fire-marker{width:36px;height:36px;background:var(--red);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(200,16,46,0.7);cursor:pointer;}
+.fire-marker.selected{box-shadow:0 0 0 3px rgba(200,16,46,0.5),0 3px 14px rgba(200,16,46,0.9);}
+.fire-marker .marker-inner{transform:rotate(45deg);font-size:1rem;margin-top:-2px;}
+.sub-marker{width:32px;height:32px;background:var(--sub-color);border:2.5px solid #fff;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(21,101,192,0.7);cursor:pointer;transform:rotate(0deg);}
+.sub-marker.selected{box-shadow:0 0 0 3px rgba(21,101,192,0.5),0 3px 14px rgba(21,101,192,0.9);}
+.sub-marker .marker-inner{font-size:1rem;}
+.cistern-marker{width:30px;height:30px;background:#1565C0;border:2.5px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(21,101,192,0.7);font-size:0.9rem;cursor:pointer;}
+
+/* ── EDIT TOOLBAR ── */
+#edit-toolbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:600;background:var(--panel-bg);border:1px solid var(--gold);border-radius:6px;padding:8px 14px;display:none;align-items:center;gap:8px;backdrop-filter:blur(10px);white-space:nowrap;flex-wrap:wrap;justify-content:center;}
+#edit-toolbar.show{display:flex;}
+#edit-toolbar span{font-size:0.75rem;color:var(--gold);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;}
+.tb-btn{background:rgba(200,16,46,0.2);border:1px solid var(--red);color:#fff;padding:5px 11px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.7rem;font-weight:600;text-transform:uppercase;transition:all 0.2s;}
+.tb-btn:hover,.tb-btn.active{background:var(--red);}
+.tb-btn.sub{border-color:var(--sub-color);background:rgba(21,101,192,0.2);}
+.tb-btn.sub:hover,.tb-btn.sub.active{background:var(--sub-color);}
+.tb-btn.cistern{border-color:#0097A7;background:rgba(0,151,167,0.2);}
+.tb-btn.cistern:hover,.tb-btn.cistern.active{background:#0097A7;}
+.tb-btn.coordmode{border-color:#FF9800;background:rgba(255,152,0,0.2);color:#FFB74D;}
+.tb-btn.coordmode:hover,.tb-btn.coordmode.active{background:#FF9800;color:#fff;}
+
+/* ── COORD EDIT HINT ── */
+#coord-hint{position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:600;background:#1a0d00;border:1px solid #FF9800;border-radius:6px;padding:8px 16px;display:none;font-size:0.72rem;color:#FFB74D;text-align:center;backdrop-filter:blur(10px);}
+#coord-hint.show{display:block;}
+
+/* ── MODAL BASE ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:3000;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px);}
+.modal-ov.show{display:flex;}
+.modal-box{background:#140303;border:1px solid var(--red);border-radius:10px;padding:1.8rem;width:100%;max-width:430px;box-shadow:0 0 60px rgba(200,16,46,0.25);max-height:90dvh;overflow-y:auto;}
+.modal-box.blue{background:#020d1a;border-color:var(--sub-color);}
+.modal-box.dark{background:#0d0d0d;border-color:#555;}
+.modal-box h2{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--gold);margin-bottom:1.2rem;}
+.modal-box.blue h2{color:#64B5F6;}
+.modal-box.dark h2{color:#ccc;}
+.mf{margin-bottom:0.8rem;}
+.mf label{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);margin-bottom:4px;}
+.mf input,.mf select,.mf textarea{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.875rem;padding:8px 10px;outline:none;transition:border-color 0.2s;}
+.mf input:focus,.mf select:focus,.mf textarea:focus{border-color:var(--red);}
+.mf select option{background:#1a0505;}
+.mf textarea{resize:vertical;min-height:60px;}
+.mf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.m-actions{display:flex;gap:8px;margin-top:1rem;}
+.m-actions button{flex:1;padding:9px;border:none;border-radius:4px;font-family:'Barlow',sans-serif;font-size:0.8rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.m-actions .save-btn{background:var(--red);color:#fff;}
+.m-actions .save-btn.blue{background:var(--sub-color);}
+.m-actions .cancel-btn{background:#2a2a2a;color:var(--text-dim);}
+.m-actions button:hover{opacity:0.85;}
+#login-error{color:var(--red-glow);font-size:0.75rem;text-align:center;margin-bottom:0.6rem;min-height:1rem;}
+.login-note{font-size:0.72rem;text-align:center;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.4rem;}
+.login-cancel{display:block;text-align:center;margin-top:0.8rem;font-size:0.72rem;color:var(--text-dim);cursor:pointer;text-decoration:underline;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+
+/* ── COORD EDITOR in modal ── */
+.coord-list{max-height:200px;overflow-y:auto;margin-bottom:0.8rem;}
+.coord-list::-webkit-scrollbar{width:4px;}
+.coord-list::-webkit-scrollbar-thumb{background:var(--red);border-radius:2px;}
+.coord-row{display:grid;grid-template-columns:1fr 1fr 32px;gap:6px;margin-bottom:5px;align-items:center;}
+.coord-row input{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.78rem;padding:5px 7px;outline:none;}
+.coord-row input:focus{border-color:#FF9800;}
+.coord-del{background:rgba(200,16,46,0.2);border:1px solid var(--red);border-radius:4px;color:var(--red-glow);cursor:pointer;font-size:0.8rem;padding:4px;transition:background 0.15s;}
+.coord-del:hover{background:var(--red);color:#fff;}
+.coord-add-btn{background:rgba(255,152,0,0.1);border:1px dashed #FF9800;border-radius:4px;color:#FFB74D;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.72rem;padding:6px;width:100%;margin-bottom:0.6rem;transition:background 0.15s;}
+.coord-add-btn:hover{background:rgba(255,152,0,0.2);}
+.map-pick-hint{font-size:0.68rem;color:#FF9800;margin-top:4px;}
+
+/* ── PHOTO UPLOAD ── */
+.photo-upload-area{background:rgba(255,255,255,0.03);border:1px dashed var(--border);border-radius:6px;padding:1rem;text-align:center;margin-bottom:0.6rem;}
+.photo-upload-area.highlight{border-color:var(--gold);background:rgba(245,166,35,0.05);}
+.photo-upload-label{cursor:pointer;display:block;}
+.photo-upload-label span{display:block;font-size:0.72rem;color:var(--text-dim);margin-top:4px;}
+.photo-preview{width:100%;height:100px;object-fit:cover;border-radius:4px;margin-top:8px;display:none;}
+
+/* ── DASHBOARD ── */
+#dashboard-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:4000;backdrop-filter:blur(8px);overflow-y:auto;}
+#dashboard-ov.show{display:block;}
+.dash-inner{max-width:860px;margin:0 auto;padding:2rem 1.5rem;}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;}
+.dash-header h1{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.1em;color:var(--gold);}
+.dash-close{background:rgba(200,16,46,0.2);border:1px solid var(--red);border-radius:6px;color:#fff;padding:8px 18px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:0.8rem;font-weight:700;text-transform:uppercase;transition:background 0.2s;}
+.dash-close:hover{background:var(--red);}
+.dash-section{margin-bottom:2rem;}
+.dash-section h2{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.1em;color:#fff;margin-bottom:1rem;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;}
+.dash-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:1.2rem;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);}
+.dash-card.sub::before{background:var(--sub-color);}
+.dash-card:hover{border-color:var(--gold);transform:translateY(-2px);background:rgba(245,166,35,0.05);}
+.dash-card h3{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.06em;color:#fff;margin-bottom:4px;}
+.dash-card p{font-size:0.72rem;color:var(--text-dim);}
+.dash-card .card-type{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.dash-card.sub .card-type{color:#64B5F6;}
+.dash-action-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;}
+.dash-action{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:1.2rem;cursor:pointer;transition:all 0.2s;text-align:center;}
+.dash-action:hover{border-color:var(--gold);background:rgba(245,166,35,0.05);}
+.dash-action-icon{font-size:1.8rem;margin-bottom:0.5rem;}
+.dash-action h3{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:0.06em;color:#fff;margin-bottom:3px;}
+.dash-action p{font-size:0.7rem;color:var(--text-dim);}
+.dash-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1rem;margin-bottom:2rem;}
+.stat-card{background:rgba(200,16,46,0.08);border:1px solid rgba(200,16,46,0.2);border-radius:8px;padding:1rem;text-align:center;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:0.05em;color:var(--red);line-height:1;}
+.stat-val.blue{color:#64B5F6;}
+.stat-val.gold{color:var(--gold);}
+.stat-label{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  #panel{width:100%;border-left:none;border-top:1px solid var(--border);}
+  #legend{bottom:12px;left:10px;padding:8px 10px;}
+  .dash-grid,.dash-action-grid{grid-template-columns:1fr 1fr;}
+  .dash-stats{grid-template-columns:1fr 1fr;}
+  #edit-toolbar{width:95%;font-size:0.65rem;}
+  .header-right .mode-btn:not(.dashboard-btn):not(.logout) span.hl{display:none;}
+}
+</style>
 </head>
 <body>
 
@@ -139,7 +243,8 @@
   </div>
   <div class="header-right">
     <div id="admin-badge">🛡️ Admin</div>
-    <button class="mode-btn" id="btn-edit" onclick="onEditClick()" style="display:none">✏️ Editar</button>
+    <button class="mode-btn dashboard-btn" id="btn-dashboard" onclick="openDashboard()" style="display:none">⚙️ <span class="hl">Dashboard</span></button>
+    <button class="mode-btn" id="btn-edit" onclick="onEditClick()" style="display:none">✏️ <span class="hl">Editar</span></button>
     <button class="mode-btn" id="btn-login" onclick="showLogin()">🔐 Admin</button>
     <button class="mode-btn logout" id="btn-logout" onclick="logout()" style="display:none">Salir</button>
   </div>
@@ -147,84 +252,128 @@
 
 <main>
   <div id="map"></div>
+  <!-- Edit toolbar -->
   <div id="edit-toolbar">
     <span>⚠ Modo Edición</span>
-    <button class="tb-btn active" id="tb-station" onclick="setAddMode('station')">🚒 Añadir Estación</button>
-    <button class="tb-btn cistern" id="tb-cistern" onclick="setAddMode('cistern')">💧 Añadir Cisterna</button>
+    <button class="tb-btn active" id="tb-station" onclick="setAddMode('station')">🚒 Estación</button>
+    <button class="tb-btn sub" id="tb-substation" onclick="setAddMode('substation')">🏠 Sub-Estación</button>
+    <button class="tb-btn cistern" id="tb-cistern" onclick="setAddMode('cistern')">💧 Cisterna</button>
+    <button class="tb-btn coordmode" id="tb-coords" onclick="setAddMode('coords')">📍 Editar Zona</button>
     <button class="tb-btn" style="border-color:#888;background:rgba(100,100,100,0.2)" onclick="toggleEditMode()">✕ Salir</button>
   </div>
+  <!-- Coord hint -->
+  <div id="coord-hint">📍 Haz clic en el mapa para añadir puntos a la zona de cobertura. Cierra el modal para finalizar.</div>
+
+  <!-- Panel info -->
   <div id="panel">
     <button class="panel-close" onclick="closePanel()">✕</button>
-    <div class="panel-photo" id="panel-photo"><div class="photo-placeholder">🚒</div></div>
+    <div class="panel-photo" id="panel-photo" onclick="onPhotoClick()">
+      <div class="photo-placeholder">🚒</div>
+      <div class="photo-edit-hint" id="photo-edit-hint">📷 Cambiar foto</div>
+    </div>
+    <input type="file" id="photo-upload-input" accept="image/*" onchange="handlePhotoUpload(event)"/>
     <div class="panel-body">
-      <div class="station-name" id="panel-name">—</div>
-      <div class="station-number" id="panel-number">—</div>
+      <div id="panel-name" class="station-name">—</div>
+      <div id="panel-number" class="station-number">—</div>
       <div class="info-grid" id="panel-info"></div>
       <div class="divider"></div>
       <div class="units-section">
         <h3>Unidades de Combate</h3>
         <div class="units-grid" id="panel-units"></div>
-        <div class="admin-actions" id="admin-actions">
-          <button class="edit-btn" onclick="openEditModal()">✏️ Editar unidades</button>
-        </div>
+      </div>
+      <div class="admin-actions" id="admin-actions">
+        <button class="edit-btn" onclick="openEditStation()">✏️ Editar información</button>
+        <button class="edit-btn" onclick="openEditUnits()">🚒 Editar unidades</button>
+        <button class="edit-btn" onclick="openEditCoords()">📍 Editar zona de cobertura</button>
+        <button class="edit-btn danger" onclick="deleteActiveStation()">🗑️ Eliminar estación</button>
       </div>
     </div>
   </div>
+
+  <!-- Legend -->
   <div id="legend">
     <h4>Leyenda</h4>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Cuerpo de Bomberos</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#1565C0"></div>Cisterna Voluntaria</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Estación Principal</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--sub-color);border-radius:2px"></div>Sub-Estación</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0097A7"></div>Cisterna Voluntaria</div>
     <div class="legend-item"><div class="legend-dot" style="background:rgba(200,16,46,0.2);border:2px solid var(--red);border-radius:2px;width:18px;height:12px;flex-shrink:0"></div>Zona de Cobertura</div>
   </div>
 </main>
 
 <div id="save-toast"></div>
 
+<!-- ═══════════════════════════════════════════ -->
 <!-- LOGIN MODAL -->
 <div id="login-ov" class="modal-ov">
   <div class="modal-box">
     <div style="text-align:center;font-size:2.8rem;margin-bottom:0.4rem">🔥</div>
-    <h2 style="text-align:center;color:#fff">Panel Administrativo</h2>
+    <h2 style="text-align:center;color:#fff">Acceso Administrativo</h2>
     <p class="login-note">Acceso restringido — Solo personal autorizado</p>
-    <div class="mf"><label>Usuario</label><input type="text" id="login-user" placeholder="usuario" autocomplete="username"/></div>
-    <div class="mf"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div id="login-error"></div>
-    <button class="m-actions save-btn" style="width:100%;padding:11px;border:none;border-radius:5px;font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;background:var(--red);color:#fff" onclick="doLogin()">Iniciar Sesión</button>
+    <div class="mf"><label>Usuario</label><input type="text" id="login-user" placeholder="usuario" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/></div>
+    <div class="mf"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div id="login-attempts-msg" style="font-size:0.72rem;color:#FF9800;text-align:center;min-height:1rem;margin-bottom:0.4rem"></div>
+    <button id="login-submit-btn" style="width:100%;padding:11px;border:none;border-radius:5px;font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;background:var(--red);color:#fff;font-family:'Barlow',sans-serif;" onclick="doLogin()">Iniciar Sesión</button>
     <span class="login-cancel" onclick="closeLogin()">Cancelar</span>
   </div>
 </div>
 
-<!-- EDIT UNITS -->
+<!-- EDIT UNITS MODAL -->
 <div id="units-ov" class="modal-ov">
   <div class="modal-box">
-    <h2>✏️ Editar Unidades</h2>
+    <h2>🚒 Editar Unidades</h2>
     <div id="modal-fields"></div>
     <div class="m-actions">
-      <button class="cancel-btn" onclick="closeModal()">Cancelar</button>
+      <button class="cancel-btn" onclick="closeOv('units-ov')">Cancelar</button>
       <button class="save-btn" onclick="saveUnits()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- ADD STATION -->
-<div id="station-ov" class="modal-ov">
+<!-- EDIT STATION INFO MODAL -->
+<div id="edit-station-ov" class="modal-ov">
   <div class="modal-box">
-    <h2>🚒 Nueva Estación</h2>
-    <div class="mf"><label>Nombre *</label><input type="text" id="ns-name" placeholder="Ej: Cuerpo de Bomberos de Moca"/></div>
-    <div class="mf"><label>Número / Estación</label><input type="text" id="ns-number" placeholder="Estación #09"/></div>
-    <div class="mf"><label>Dirección</label><input type="text" id="ns-address" placeholder="Calle, ciudad"/></div>
-    <div class="mf"><label>Intendente / Jefe</label><input type="text" id="ns-chief" placeholder="Nombre y rango"/></div>
-    <div class="mf"><label>Teléfono</label><input type="text" id="ns-phone" placeholder="(809) 000-0000"/></div>
-    <div class="mf"><label>URL Foto (opcional)</label><input type="text" id="ns-photo" placeholder="https://..."/></div>
-    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.8rem">📍 Ubicación = donde hiciste clic en el mapa</p>
+    <h2 id="edit-station-title">✏️ Editar Estación</h2>
+    <div class="mf"><label>Nombre *</label><input type="text" id="es-name"/></div>
+    <div class="mf"><label>Número / Identificación</label><input type="text" id="es-number"/></div>
+    <div class="mf"><label>Dirección</label><input type="text" id="es-address"/></div>
+    <div class="mf"><label>Intendente / Jefe</label><input type="text" id="es-chief"/></div>
+    <div class="mf"><label>Teléfono</label><input type="text" id="es-phone"/></div>
+    <div class="mf-row">
+      <div class="mf"><label>Personal Fijo</label><input type="number" min="0" id="es-staff-fixed" placeholder="0"/></div>
+      <div class="mf"><label>Personal Voluntario</label><input type="number" min="0" id="es-staff-vol" placeholder="0"/></div>
+    </div>
+    <div class="mf"><label>URL Foto (o sube desde el panel)</label><input type="text" id="es-photo" placeholder="https://..."/></div>
     <div class="m-actions">
-      <button class="cancel-btn" onclick="document.getElementById('station-ov').classList.remove('show')">Cancelar</button>
-      <button class="save-btn" onclick="confirmAddStation()">Guardar</button>
+      <button class="cancel-btn" onclick="closeOv('edit-station-ov')">Cancelar</button>
+      <button class="save-btn" id="es-save-btn" onclick="saveStationInfo()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- ADD CISTERN -->
+<!-- ADD STATION / SUBSTATION MODAL -->
+<div id="station-ov" class="modal-ov">
+  <div class="modal-box" id="station-modal-box">
+    <h2 id="station-modal-title">🚒 Nueva Estación</h2>
+    <div class="mf"><label>Nombre *</label><input type="text" id="ns-name"/></div>
+    <div class="mf"><label>Número / Identificación</label><input type="text" id="ns-number" placeholder="Estación #09"/></div>
+    <div class="mf"><label>Dirección</label><input type="text" id="ns-address" placeholder="Calle, ciudad"/></div>
+    <div class="mf"><label>Intendente / Jefe</label><input type="text" id="ns-chief" placeholder="Nombre y rango"/></div>
+    <div class="mf"><label>Teléfono</label><input type="text" id="ns-phone" placeholder="(809) 000-0000"/></div>
+    <div class="mf-row">
+      <div class="mf"><label>Personal Fijo</label><input type="number" min="0" id="ns-staff-fixed" placeholder="0"/></div>
+      <div class="mf"><label>Personal Voluntario</label><input type="number" min="0" id="ns-staff-vol" placeholder="0"/></div>
+    </div>
+    <div class="mf"><label>URL Foto (opcional)</label><input type="text" id="ns-photo" placeholder="https://..."/></div>
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.8rem">📍 Ubicación = donde hiciste clic en el mapa</p>
+    <div class="m-actions">
+      <button class="cancel-btn" onclick="closeOv('station-ov')">Cancelar</button>
+      <button class="save-btn" id="ns-save-btn" onclick="confirmAddStation()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CISTERN MODAL -->
 <div id="cistern-ov" class="modal-ov">
   <div class="modal-box blue">
     <h2>💧 Nueva Cisterna</h2>
@@ -233,21 +382,95 @@
     <div class="mf"><label>Teléfono</label><input type="text" id="nc-phone" placeholder="(809) 000-0000"/></div>
     <div class="mf"><label>Disponibilidad</label><input type="text" id="nc-note" placeholder="Disponible 24/7"/></div>
     <div class="m-actions">
-      <button class="cancel-btn" onclick="document.getElementById('cistern-ov').classList.remove('show')">Cancelar</button>
+      <button class="cancel-btn" onclick="closeOv('cistern-ov')">Cancelar</button>
       <button class="save-btn blue" onclick="confirmAddCistern()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Leaflet -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- COORD EDITOR MODAL -->
+<div id="coords-ov" class="modal-ov">
+  <div class="modal-box" style="background:#0d0800;border-color:#FF9800;max-width:480px;">
+    <h2 style="color:#FFB74D">📍 Editar Zona de Cobertura</h2>
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:1rem">Edita manualmente las coordenadas o activa el modo mapa para hacer clic y añadir puntos.</p>
+    <div class="coord-list" id="coord-list"></div>
+    <button class="coord-add-btn" onclick="addCoordRow()">+ Añadir punto manualmente</button>
+    <button class="coord-add-btn" id="map-pick-btn" onclick="toggleMapPickMode()" style="background:rgba(255,152,0,0.15);border-color:#FF9800">🗺️ Activar clic en mapa para añadir puntos</button>
+    <p class="map-pick-hint" id="map-pick-status"></p>
+    <div class="m-actions">
+      <button class="cancel-btn" onclick="closeOv('coords-ov')">Cancelar</button>
+      <button class="save-btn" style="background:#FF9800" onclick="saveCoords()">Guardar Zona</button>
+    </div>
+  </div>
+</div>
 
-<!-- Firebase compat (funciona desde file://) -->
+<!-- DASHBOARD -->
+<div id="dashboard-ov">
+  <div class="dash-inner">
+    <div class="dash-header">
+      <h1>🛡️ Panel Administrativo</h1>
+      <button class="dash-close" onclick="closeDashboard()">✕ Cerrar</button>
+    </div>
+    <!-- Stats -->
+    <div class="dash-stats" id="dash-stats"></div>
+    <!-- Quick Actions -->
+    <div class="dash-section">
+      <h2>Acciones Rápidas</h2>
+      <div class="dash-action-grid">
+        <div class="dash-action" onclick="closeDashboard();toggleEditMode()">
+          <div class="dash-action-icon">✏️</div>
+          <h3>Modo Edición</h3>
+          <p>Añadir / mover marcadores</p>
+        </div>
+        <div class="dash-action" onclick="closeDashboard();startAddStation('station')">
+          <div class="dash-action-icon">🚒</div>
+          <h3>Nueva Estación</h3>
+          <p>Añadir estación principal</p>
+        </div>
+        <div class="dash-action" onclick="closeDashboard();startAddStation('substation')">
+          <div class="dash-action-icon">🏠</div>
+          <h3>Nueva Sub-Estación</h3>
+          <p>Añadir sub-estación</p>
+        </div>
+        <div class="dash-action" onclick="closeDashboard();startAddCistern()">
+          <div class="dash-action-icon">💧</div>
+          <h3>Nueva Cisterna</h3>
+          <p>Registrar cisterna voluntaria</p>
+        </div>
+        <div class="dash-action" onclick="closeDashboard();openEditCoords()">
+          <div class="dash-action-icon">📍</div>
+          <h3>Editar Zonas</h3>
+          <p>Modifica zonas de cobertura</p>
+        </div>
+        <div class="dash-action" onclick="seedDataConfirm()">
+          <div class="dash-action-icon">🔄</div>
+          <h3>Reiniciar Datos</h3>
+          <p>Restablecer datos iniciales</p>
+        </div>
+      </div>
+    </div>
+    <!-- Stations list -->
+    <div class="dash-section">
+      <h2>Estaciones Principales</h2>
+      <div class="dash-grid" id="dash-stations"></div>
+    </div>
+    <div class="dash-section">
+      <h2>Sub-Estaciones</h2>
+      <div class="dash-grid" id="dash-substations"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// ── Firebase init ──
+// ═══════════════════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════════════════
 firebase.initializeApp({
   apiKey: "AIzaSyAJD7dX17g8H_6pv-tgie_kSNLJZR3vJtA",
   authDomain: "bomberos-rd.firebaseapp.com",
@@ -258,21 +481,119 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 
-// ── Admin credentials ──
-const ADMINS = [{user:'admin',pass:'Bomberos2024!'},{user:'jefe',pass:'RD_Bomberos#1'}];
-let isAdmin = false;
+// ═══════════════════════════════════════════════════
+// SECURITY — Rate limiting & input sanitization
+// ═══════════════════════════════════════════════════
+const Security = {
+  loginAttempts: 0,
+  maxAttempts: 5,
+  lockoutUntil: 0,
+  lockoutDuration: 5 * 60 * 1000, // 5 minutes
 
-// ── Seed data (insertado solo si Firestore está vacío) ──
-// coverage se guarda como array de objetos {la,ln} (Firestore no admite arrays de arrays)
+  sanitize(str) {
+    if (typeof str !== 'string') return '';
+    return str
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;').trim().slice(0,500);
+  },
+
+  sanitizeUrl(url) {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      if (!['http:','https:','data:'].includes(u.protocol)) return null;
+      return url.slice(0,2000);
+    } catch { return null; }
+  },
+
+  sanitizeNumber(val, min=0, max=9999) {
+    const n = parseInt(val, 10);
+    return isNaN(n) ? 0 : Math.max(min, Math.min(max, n));
+  },
+
+  sanitizeCoord(val) {
+    const f = parseFloat(val);
+    return isNaN(f) ? 0 : Math.round(f * 1e6) / 1e6;
+  },
+
+  isLocked() {
+    if (this.lockoutUntil > Date.now()) return true;
+    return false;
+  },
+
+  recordAttempt() {
+    this.loginAttempts++;
+    if (this.loginAttempts >= this.maxAttempts) {
+      this.lockoutUntil = Date.now() + this.lockoutDuration;
+      this.loginAttempts = 0;
+    }
+  },
+
+  resetAttempts() {
+    this.loginAttempts = 0;
+    this.lockoutUntil = 0;
+  },
+
+  getRemainingLockout() {
+    const rem = Math.ceil((this.lockoutUntil - Date.now()) / 1000);
+    return rem > 0 ? rem : 0;
+  },
+
+  // Hash function (SHA-256 via SubtleCrypto)
+  async hashPassword(pass) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// ADMIN CREDENTIALS — SHA-256 hashes only (no plain text)
+// ═══════════════════════════════════════════════════
+const ADMIN_CREDS = [
+  { user: 'admin', hash: '6a0edf6367fe390f1f5718a3a18f80145a96e5ab3e20c9db2a0d46cbdfa79626', role: 'Administrador' },
+  { user: 'jefe',  hash: '0d7179b47eb6ba8ec3f1a735bdee972a140f67d58b40e7eba360f941d0ead21c', role: 'Jefe' }
+];
+
+let isAdmin = false;
+let currentUserRole = '';
+let sessionTimeout = null;
+const SESSION_DURATION = 60 * 60 * 1000; // 1 hour
+
+// ═══════════════════════════════════════════════════
+// SEED DATA
+// ═══════════════════════════════════════════════════
 const SEED_STATIONS = [
-  {name:"Cuerpo de Bomberos del Distrito Nacional",number:"Estación Central #01",address:"Av. Independencia esq. Félix María Ruiz, Santo Domingo, D.N.",chief:"Cnel. José Díaz Méndez",phone:"911 / (809) 682-2000",lat:18.4742,lng:-69.9012,photo:null,units:{Autobombas:4,Escaleras:2,Cisterneros:2,Salvamento:1},coverage:[{la:18.510,ln:-70.020},{la:18.510,ln:-69.860},{la:18.440,ln:-69.860},{la:18.440,ln:-69.950},{la:18.510,ln:-70.020}]},
-  {name:"Cuerpo de Bomberos de Santiago",number:"Estación #02",address:"C/ del Sol #45, Santiago de los Caballeros",chief:"Cnel. Rafael Marte Reyes",phone:"(809) 583-2222",lat:19.4511,lng:-70.6970,photo:null,units:{Autobombas:3,Escaleras:1,Cisterneros:2,Rescate:1},coverage:[{la:19.510,ln:-70.790},{la:19.510,ln:-70.610},{la:19.395,ln:-70.610},{la:19.395,ln:-70.790},{la:19.510,ln:-70.790}]},
-  {name:"Cuerpo de Bomberos de La Romana",number:"Estación #03",address:"Av. Santa Rosa, La Romana",chief:"Mayor Carmen Núñez",phone:"(809) 556-3333",lat:18.4274,lng:-68.9728,photo:null,units:{Autobombas:2,Cisterneros:1,Rescate:1},coverage:[{la:18.475,ln:-69.030},{la:18.475,ln:-68.910},{la:18.385,ln:-68.910},{la:18.385,ln:-69.030},{la:18.475,ln:-69.030}]},
-  {name:"Cuerpo de Bomberos de San Pedro de Macorís",number:"Estación #04",address:"Av. Circunvalación, San Pedro de Macorís",chief:"Mayor Luis Ferreras",phone:"(809) 529-4444",lat:18.4604,lng:-69.3049,photo:null,units:{Autobombas:2,Cisterneros:1},coverage:[{la:18.510,ln:-69.370},{la:18.510,ln:-69.230},{la:18.410,ln:-69.230},{la:18.410,ln:-69.370},{la:18.510,ln:-69.370}]},
-  {name:"Cuerpo de Bomberos de Puerto Plata",number:"Estación #05",address:"C/ Duarte #12, Puerto Plata",chief:"Cnel. Ana María Castillo",phone:"(809) 586-5555",lat:19.7931,lng:-70.6879,photo:null,units:{Autobombas:2,Escaleras:1,Rescate:1},coverage:[{la:19.860,ln:-70.780},{la:19.860,ln:-70.600},{la:19.730,ln:-70.600},{la:19.730,ln:-70.780},{la:19.860,ln:-70.780}]},
-  {name:"Cuerpo de Bomberos de San Francisco de Macorís",number:"Estación #06",address:"C/ Sánchez, San Francisco de Macorís",chief:"Mayor Félix Taveras",phone:"(809) 588-6666",lat:19.3009,lng:-70.2530,photo:null,units:{Autobombas:2,Cisterneros:1},coverage:[{la:19.360,ln:-70.330},{la:19.360,ln:-70.180},{la:19.245,ln:-70.180},{la:19.245,ln:-70.330},{la:19.360,ln:-70.330}]},
-  {name:"Cuerpo de Bomberos de Higüey",number:"Estación #07",address:"Av. Altagracia, Higüey",chief:"Cnel. Pedro Rincón",phone:"(809) 554-7777",lat:18.6157,lng:-68.7072,photo:null,units:{Autobombas:2,Cisterneros:2},coverage:[{la:18.670,ln:-68.770},{la:18.670,ln:-68.640},{la:18.565,ln:-68.640},{la:18.565,ln:-68.770},{la:18.670,ln:-68.770}]},
-  {name:"Cuerpo de Bomberos de Barahona",number:"Estación #08",address:"C/ Uruguay, Barahona",chief:"Mayor Juana Polanco",phone:"(809) 524-8888",lat:18.2091,lng:-71.0998,photo:null,units:{Autobombas:2,Rescate:1},coverage:[{la:18.270,ln:-71.170},{la:18.270,ln:-71.030},{la:18.155,ln:-71.030},{la:18.155,ln:-71.170},{la:18.270,ln:-71.170}]}
+  {type:'station',name:"Cuerpo de Bomberos del Distrito Nacional",number:"Estación Central #01",address:"Av. Independencia esq. Félix María Ruiz, Santo Domingo, D.N.",chief:"Cnel. José Díaz Méndez",phone:"911 / (809) 682-2000",staffFixed:45,staffVolunteer:20,lat:18.4742,lng:-69.9012,photo:null,
+    units:{"Camiones Bomba":4,"Camión Escalera":2,"Camión Cisterna":2,"Salvamento":1},
+    coverage:[{la:18.510,ln:-70.020},{la:18.510,ln:-69.860},{la:18.440,ln:-69.860},{la:18.440,ln:-69.950},{la:18.510,ln:-70.020}]},
+  {type:'station',name:"Cuerpo de Bomberos de Santiago",number:"Estación #02",address:"C/ del Sol #45, Santiago de los Caballeros",chief:"Cnel. Rafael Marte Reyes",phone:"(809) 583-2222",staffFixed:38,staffVolunteer:15,lat:19.4511,lng:-70.6970,photo:null,
+    units:{"Camiones Bomba":3,"Camión Escalera":1,"Camión Cisterna":2,"Rescate":1},
+    coverage:[{la:19.510,ln:-70.790},{la:19.510,ln:-70.610},{la:19.395,ln:-70.610},{la:19.395,ln:-70.790},{la:19.510,ln:-70.790}]},
+  {type:'station',name:"Cuerpo de Bomberos de La Romana",number:"Estación #03",address:"Av. Santa Rosa, La Romana",chief:"Mayor Carmen Núñez",phone:"(809) 556-3333",staffFixed:22,staffVolunteer:10,lat:18.4274,lng:-68.9728,photo:null,
+    units:{"Camiones Bomba":2,"Camión Cisterna":1,"Rescate":1},
+    coverage:[{la:18.475,ln:-69.030},{la:18.475,ln:-68.910},{la:18.385,ln:-68.910},{la:18.385,ln:-69.030},{la:18.475,ln:-69.030}]},
+  {type:'station',name:"Cuerpo de Bomberos de San Pedro de Macorís",number:"Estación #04",address:"Av. Circunvalación, San Pedro de Macorís",chief:"Mayor Luis Ferreras",phone:"(809) 529-4444",staffFixed:20,staffVolunteer:8,lat:18.4604,lng:-69.3049,photo:null,
+    units:{"Camiones Bomba":2,"Camión Cisterna":1},
+    coverage:[{la:18.510,ln:-69.370},{la:18.510,ln:-69.230},{la:18.410,ln:-69.230},{la:18.410,ln:-69.370},{la:18.510,ln:-69.370}]},
+  {type:'station',name:"Cuerpo de Bomberos de Puerto Plata",number:"Estación #05",address:"C/ Duarte #12, Puerto Plata",chief:"Cnel. Ana María Castillo",phone:"(809) 586-5555",staffFixed:25,staffVolunteer:12,lat:19.7931,lng:-70.6879,photo:null,
+    units:{"Camiones Bomba":2,"Camión Escalera":1,"Rescate":1},
+    coverage:[{la:19.860,ln:-70.780},{la:19.860,ln:-70.600},{la:19.730,ln:-70.600},{la:19.730,ln:-70.780},{la:19.860,ln:-70.780}]},
+  {type:'station',name:"Cuerpo de Bomberos de San Francisco de Macorís",number:"Estación #06",address:"C/ Sánchez, San Francisco de Macorís",chief:"Mayor Félix Taveras",phone:"(809) 588-6666",staffFixed:18,staffVolunteer:8,lat:19.3009,lng:-70.2530,photo:null,
+    units:{"Camiones Bomba":2,"Camión Cisterna":1},
+    coverage:[{la:19.360,ln:-70.330},{la:19.360,ln:-70.180},{la:19.245,ln:-70.180},{la:19.245,ln:-70.330},{la:19.360,ln:-70.330}]},
+  {type:'station',name:"Cuerpo de Bomberos de Higüey",number:"Estación #07",address:"Av. Altagracia, Higüey",chief:"Cnel. Pedro Rincón",phone:"(809) 554-7777",staffFixed:16,staffVolunteer:6,lat:18.6157,lng:-68.7072,photo:null,
+    units:{"Camiones Bomba":2,"Camión Cisterna":2},
+    coverage:[{la:18.670,ln:-68.770},{la:18.670,ln:-68.640},{la:18.565,ln:-68.640},{la:18.565,ln:-68.770},{la:18.670,ln:-68.770}]},
+  {type:'station',name:"Cuerpo de Bomberos de Barahona",number:"Estación #08",address:"C/ Uruguay, Barahona",chief:"Mayor Juana Polanco",phone:"(809) 524-8888",staffFixed:14,staffVolunteer:5,lat:18.2091,lng:-71.0998,photo:null,
+    units:{"Camiones Bomba":2,"Rescate":1},
+    coverage:[{la:18.270,ln:-71.170},{la:18.270,ln:-71.030},{la:18.155,ln:-71.030},{la:18.155,ln:-71.170},{la:18.270,ln:-71.170}]},
+  // Sub-stations examples
+  {type:'substation',name:"Sub-Estación Los Alcarrizos",number:"Sub-Est. #S01",address:"Av. Principal, Los Alcarrizos, D.N.",chief:"Cap. Mario Féliz",phone:"(809) 683-0011",staffFixed:8,staffVolunteer:6,lat:18.5150,lng:-70.0100,photo:null,
+    units:{"Camiones Bomba":1,"Camión Cisterna":1},
+    coverage:[{la:18.540,ln:-70.060},{la:18.540,ln:-69.970},{la:18.495,ln:-69.970},{la:18.495,ln:-70.060},{la:18.540,ln:-70.060}]},
+  {type:'substation',name:"Sub-Estación Manoguayabo",number:"Sub-Est. #S02",address:"C/ Central, Manoguayabo",chief:"Cap. Rosa Pérez",phone:"(809) 683-0022",staffFixed:6,staffVolunteer:4,lat:18.5050,lng:-70.1100,photo:null,
+    units:{"Camiones Bomba":1},
+    coverage:[{la:18.530,ln:-70.140},{la:18.530,ln:-70.080},{la:18.480,ln:-70.080},{la:18.480,ln:-70.140},{la:18.530,ln:-70.140}]}
 ];
 const SEED_CISTERNS = [
   {owner:"Sr. Juan García",volume:"20,000 L",phone:"(809) 700-0001",note:"Disponible 24/7",lat:18.482,lng:-69.910},
@@ -280,17 +601,25 @@ const SEED_CISTERNS = [
   {owner:"Hacienda Romana",volume:"30,000 L",phone:"(809) 700-0003",note:"Previa coordinación",lat:18.430,lng:-68.980}
 ];
 
-// ── Map ──
+// ═══════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════
 const map = L.map('map',{center:[18.9,-70.1],zoom:8});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
 }).addTo(map);
 
 let activeStation=null, activeZone=null, editMode=false, addMode='station', pendingLL=null;
+let mapPickMode=false;
 const markerMap={};
+const allStations=[];
 
+// ── Icons ──
 function fireIcon(sel=false){
   return L.divIcon({className:'',html:`<div class="fire-marker${sel?' selected':''}"><div class="marker-inner">🚒</div></div>`,iconSize:[36,36],iconAnchor:[18,36]});
+}
+function subIcon(sel=false){
+  return L.divIcon({className:'',html:`<div class="sub-marker${sel?' selected':''}"><div class="marker-inner">🏠</div></div>`,iconSize:[32,32],iconAnchor:[16,16]});
 }
 function cisternIcon(){
   return L.divIcon({className:'',html:`<div class="cistern-marker">💧</div>`,iconSize:[30,30],iconAnchor:[15,15]});
@@ -305,10 +634,12 @@ function toast(msg,err=false){
   t._t=setTimeout(()=>t.classList.remove('show'),3500);
 }
 
+// ── Close overlay helper ──
+function closeOv(id){ document.getElementById(id).classList.remove('show'); }
+
 // ── Load data ──
 async function loadData(){
   try {
-    // Stations
     let stSnap = await db.collection('stations').get();
     if(stSnap.empty){
       for(const s of SEED_STATIONS) await db.collection('stations').add(s);
@@ -316,62 +647,89 @@ async function loadData(){
     }
     stSnap.forEach(d=>{
       const s={id:d.id,...d.data()};
-      const m=L.marker([s.lat,s.lng],{icon:fireIcon()}).addTo(map);
+      allStations.push(s);
+      const icon = s.type==='substation' ? subIcon() : fireIcon();
+      const m=L.marker([s.lat,s.lng],{icon}).addTo(map);
       markerMap[s.id]=m;
       m.on('click',()=>selectStation(s));
     });
-
-    // Cisterns
     let cSnap = await db.collection('cisterns').get();
     if(cSnap.empty){
       for(const c of SEED_CISTERNS) await db.collection('cisterns').add(c);
       cSnap = await db.collection('cisterns').get();
     }
     cSnap.forEach(d=>addCisternMarker({id:d.id,...d.data()}));
-
     document.getElementById('loading-screen').style.display='none';
   } catch(e){
     document.getElementById('loading-screen').innerHTML=
       `<div style="color:var(--red);padding:2rem;text-align:center;max-width:400px">
         <div style="font-size:2rem;margin-bottom:1rem">⚠️</div>
         <strong>Error conectando a Firebase</strong><br><br>
-        <span style="font-size:0.8rem;color:#aaa">${e.message}</span><br><br>
-        <span style="font-size:0.75rem;color:#888">Verifica las Reglas de Firestore:<br>allow read, write: if <strong>true</strong></span>
+        <span style="font-size:0.8rem;color:#aaa">${e.message}</span>
       </div>`;
   }
 }
 
 function addCisternMarker(c){
   const m=L.marker([c.lat,c.lng],{icon:cisternIcon()}).addTo(map);
+  const safe = k => Security.sanitize(String(c[k]||''));
   m.bindPopup(`<div style="font-family:'Barlow',sans-serif;min-width:180px">
-    <strong style="color:#1565C0">💧 Cisterna Voluntaria</strong><br>
-    <b>Propietario:</b> ${c.owner}<br><b>Capacidad:</b> ${c.volume}<br>
-    <b>Contacto:</b> ${c.phone}<br><i style="color:#777">${c.note}</i></div>`);
+    <strong style="color:#0097A7">💧 Cisterna Voluntaria</strong><br>
+    <b>Propietario:</b> ${safe('owner')}<br><b>Capacidad:</b> ${safe('volume')}<br>
+    <b>Contacto:</b> ${safe('phone')}<br><i style="color:#777">${safe('note')}</i></div>`);
 }
 
+// ── Select station ──
 function selectStation(s){
-  if(activeStation) markerMap[activeStation.id]?.setIcon(fireIcon(false));
-  markerMap[s.id].setIcon(fireIcon(true));
+  if(activeStation){
+    const prev = allStations.find(x=>x.id===activeStation.id);
+    if(prev) markerMap[activeStation.id]?.setIcon(prev.type==='substation'?subIcon():fireIcon());
+  }
+  markerMap[s.id]?.setIcon(s.type==='substation'?subIcon(true):fireIcon(true));
   activeStation=s;
-  if(activeZone){map.removeLayer(activeZone);}
+  if(activeZone){map.removeLayer(activeZone);activeZone=null;}
   const covLL=(s.coverage||[]).map(p=>Array.isArray(p)?p:[p.la,p.ln]);
-  activeZone=L.polygon(covLL,{color:'#C8102E',fillColor:'#C8102E',fillOpacity:0.18,weight:2,dashArray:'6,4'}).addTo(map);
+  if(covLL.length>2){
+    const color = s.type==='substation'?'#1565C0':'#C8102E';
+    activeZone=L.polygon(covLL,{color,fillColor:color,fillOpacity:0.18,weight:2,dashArray:'6,4'}).addTo(map);
+  }
   map.flyTo([s.lat,s.lng],12,{duration:0.8});
-  document.getElementById('panel-name').textContent=s.name;
-  document.getElementById('panel-number').textContent=s.number;
-  const ph=document.getElementById('panel-photo');
-  ph.innerHTML=s.photo?`<img src="${s.photo}" alt="${s.name}"/>`:`<div class="photo-placeholder">🚒</div>`;
-  document.getElementById('panel-info').innerHTML=`
-    <div class="info-row"><div class="info-icon">📍</div><div class="info-content"><label>Dirección</label><span>${s.address}</span></div></div>
-    <div class="info-row"><div class="info-icon">👨‍✈️</div><div class="info-content"><label>Intendente / Jefe</label><span>${s.chief}</span></div></div>
-    <div class="info-row"><div class="info-icon">📞</div><div class="info-content"><label>Contacto</label><span>${s.phone}</span></div></div>`;
-  renderUnits(s);
-  document.getElementById('admin-actions').classList.toggle('show',isAdmin);
+  renderPanel(s);
   document.getElementById('panel').classList.add('open');
 }
 
+function renderPanel(s){
+  const safe = k => Security.sanitize(String(s[k]||'—'));
+  const isSub = s.type==='substation';
+  document.getElementById('panel-name').textContent=s.name||'—';
+  const numEl=document.getElementById('panel-number');
+  numEl.textContent=s.number||'—';
+  numEl.className='station-number'+(isSub?' sub':'');
+  // Photo
+  const ph=document.getElementById('panel-photo');
+  const safePhotoUrl = Security.sanitizeUrl(s.photo);
+  ph.innerHTML= safePhotoUrl
+    ? `<img src="${safePhotoUrl}" alt="${Security.sanitize(s.name)}" onerror="this.parentElement.innerHTML='<div class=\\'photo-placeholder ${isSub?'sub':''}\\'>${isSub?'🏠':'🚒'}</div><div class=\\'photo-edit-hint\\' id=\\'photo-edit-hint\\'>📷 Cambiar foto</div>'"/>
+       <div class="photo-edit-hint" id="photo-edit-hint">📷 Cambiar foto</div>`
+    : `<div class="photo-placeholder${isSub?' sub':''}"><span>${isSub?'🏠':'🚒'}</span></div>
+       <div class="photo-edit-hint" id="photo-edit-hint">📷 Cambiar foto</div>`;
+  if(isAdmin){ ph.querySelector('.photo-edit-hint')?.classList.add('visible'); }
+  ph.className='panel-photo'+(isSub?' substation':'');
+  // Info
+  const staffFixed = Security.sanitizeNumber(s.staffFixed||0);
+  const staffVol   = Security.sanitizeNumber(s.staffVolunteer||0);
+  document.getElementById('panel-info').innerHTML=`
+    <div class="info-row"><div class="info-icon">📍</div><div class="info-content"><label>Dirección</label><span>${safe('address')}</span></div></div>
+    <div class="info-row"><div class="info-icon">👨‍✈️</div><div class="info-content"><label>Intendente / Jefe</label><span>${safe('chief')}</span></div></div>
+    <div class="info-row"><div class="info-icon">📞</div><div class="info-content"><label>Contacto</label><span>${safe('phone')}</span></div></div>
+    <div class="info-row"><div class="info-icon">👥</div><div class="info-content"><label>Personal</label><span>${staffFixed} fijos · ${staffVol} voluntarios</span></div></div>
+    <div class="info-row"><div class="info-icon">${isSub?'🏠':'🚒'}</div><div class="info-content"><label>Tipo</label><span>${isSub?'Sub-Estación':'Estación Principal'}</span></div></div>`;
+  renderUnits(s);
+  document.getElementById('admin-actions').classList.toggle('show',isAdmin);
+}
+
 function renderUnits(s){
-  const ic={Autobombas:'🚒',Escaleras:'🪜',Cisterneros:'🛢️',Salvamento:'⛑️',Rescate:'🚨',Ambulancias:'🚑',Motobombas:'⚙️'};
+  const ic={'Camiones Bomba':'🚒','Camión Escalera':'🪜','Camión Cisterna':'🛢️','Salvamento':'⛑️','Rescate':'🚨','Ambulancias':'🚑','Motobombas':'⚙️'};
   document.getElementById('panel-units').innerHTML=Object.entries(s.units||{}).map(([k,v])=>
     `<div class="unit-card"><div class="unit-icon">${ic[k]||'🔧'}</div><div class="unit-info"><strong>${v}</strong><span>${k}</span></div></div>`).join('');
 }
@@ -379,135 +737,189 @@ function renderUnits(s){
 function closePanel(){
   document.getElementById('panel').classList.remove('open');
   if(activeZone){map.removeLayer(activeZone);activeZone=null;}
-  if(activeStation){markerMap[activeStation.id]?.setIcon(fireIcon(false));activeStation=null;}
+  if(activeStation){
+    const s=allStations.find(x=>x.id===activeStation.id);
+    if(s) markerMap[activeStation.id]?.setIcon(s.type==='substation'?subIcon():fireIcon());
+    activeStation=null;
+  }
 }
 
-// ── Auth ──
+// ═══════════════════════════════════════════════════
+// AUTH — secure login with rate limiting
+// ═══════════════════════════════════════════════════
 function showLogin(){
+  if(Security.isLocked()){
+    const rem=Security.getRemainingLockout();
+    document.getElementById('login-error').textContent=`⚠ Cuenta bloqueada. Espera ${rem} segundos.`;
+    document.getElementById('login-ov').classList.add('show');
+    return;
+  }
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
+  document.getElementById('login-attempts-msg').textContent='';
   document.getElementById('login-ov').classList.add('show');
   setTimeout(()=>document.getElementById('login-user').focus(),100);
 }
-function closeLogin(){ document.getElementById('login-ov').classList.remove('show'); }
-function doLogin(){
+function closeLogin(){ closeOv('login-ov'); }
+
+async function doLogin(){
+  if(Security.isLocked()){
+    document.getElementById('login-error').textContent=`⚠ Bloqueado. Espera ${Security.getRemainingLockout()}s.`;
+    return;
+  }
+  const btn=document.getElementById('login-submit-btn');
+  btn.disabled=true; btn.textContent='Verificando...';
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value;
-  if(ADMINS.some(a=>a.user===u&&a.pass===p)){
-    isAdmin=true; closeLogin();
+  // Sanitize inputs
+  if(!u||!p||u.length>50||p.length>100){
+    document.getElementById('login-error').textContent='⚠ Credenciales inválidas';
+    btn.disabled=false; btn.textContent='Iniciar Sesión';
+    return;
+  }
+  // Artificial delay to slow brute force
+  await new Promise(r=>setTimeout(r,600));
+  // Verify against SHA-256 hashes only — no plain text in code
+  const inputHash = await Security.hashPassword(p);
+  const match = ADMIN_CREDS.find(a => a.user === u && a.hash === inputHash);
+  if(match){
+    Security.resetAttempts();
+    isAdmin=true;
+    currentUserRole=match.role;
+    closeLogin();
+    document.getElementById('admin-badge').textContent=`🛡️ ${currentUserRole}`;
     document.getElementById('admin-badge').classList.add('show');
+    document.getElementById('btn-dashboard').style.display='';
     document.getElementById('btn-edit').style.display='';
     document.getElementById('btn-login').style.display='none';
     document.getElementById('btn-logout').style.display='';
     if(activeStation) document.getElementById('admin-actions').classList.add('show');
+    // Session auto-expire
+    clearTimeout(sessionTimeout);
+    sessionTimeout=setTimeout(()=>{ logout(); toast('Sesión expirada por inactividad',true); }, SESSION_DURATION);
+    toast(`Bienvenido, ${currentUserRole}`);
   } else {
+    Security.recordAttempt();
+    const rem=Security.maxAttempts - Security.loginAttempts;
     document.getElementById('login-error').textContent='⚠ Usuario o contraseña incorrectos';
+    if(rem>0&&rem<=3) document.getElementById('login-attempts-msg').textContent=`Intentos restantes: ${rem}`;
+    if(Security.isLocked()) document.getElementById('login-error').textContent=`⚠ Cuenta bloqueada por 5 minutos.`;
     document.getElementById('login-pass').value='';
     const b=document.getElementById('login-ov').querySelector('.modal-box');
     b.style.animation='none'; b.offsetHeight; b.style.animation='shake 0.35s ease';
   }
+  btn.disabled=false; btn.textContent='Iniciar Sesión';
 }
+
 function logout(){
-  isAdmin=false; editMode=false;
+  isAdmin=false; editMode=false; currentUserRole='';
+  clearTimeout(sessionTimeout);
   ['edit-toolbar','admin-badge'].forEach(id=>document.getElementById(id).classList.remove('show'));
-  document.getElementById('btn-edit').style.display='none';
+  ['btn-dashboard','btn-edit'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('btn-login').style.display='';
   document.getElementById('btn-logout').style.display='none';
   document.getElementById('btn-edit').classList.remove('active');
+  document.getElementById('admin-actions').classList.remove('show');
   map.getContainer().style.cursor='';
+  if(document.getElementById('dashboard-ov').classList.contains('show')) closeDashboard();
 }
 function onEditClick(){ if(!isAdmin){showLogin();return;} toggleEditMode(); }
 
-// ── Edit mode ──
+// Reset session timeout on user activity
+['click','keydown','mousemove','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{
+    if(isAdmin&&sessionTimeout){ clearTimeout(sessionTimeout); sessionTimeout=setTimeout(()=>{ logout(); toast('Sesión expirada',true); }, SESSION_DURATION); }
+  }, {passive:true});
+});
+
+// ═══════════════════════════════════════════════════
+// EDIT MODE
+// ═══════════════════════════════════════════════════
 function toggleEditMode(){
   editMode=!editMode;
   document.getElementById('edit-toolbar').classList.toggle('show',editMode);
   document.getElementById('btn-edit').classList.toggle('active',editMode);
   map.getContainer().style.cursor=editMode?'crosshair':'';
-  if(!editMode) setAddMode('station');
+  if(!editMode){ setAddMode('station'); mapPickMode=false; document.getElementById('coord-hint').classList.remove('show'); }
 }
 function setAddMode(m){
   addMode=m;
-  document.getElementById('tb-station').classList.toggle('active',m==='station');
-  document.getElementById('tb-cistern').classList.toggle('active',m==='cistern');
+  ['station','substation','cistern','coords'].forEach(id=>{
+    document.getElementById('tb-'+id)?.classList.toggle('active',m===id);
+  });
+  document.getElementById('coord-hint').classList.toggle('show', m==='coords');
 }
 
 map.on('click',function(e){
-  if(!editMode||!isAdmin) return;
+  if(!isAdmin) return;
+  if(mapPickMode){
+    addCoordFromMap(e.latlng);
+    return;
+  }
+  if(!editMode) return;
   pendingLL=e.latlng;
   if(addMode==='cistern'){
     ['nc-owner','nc-volume','nc-phone','nc-note'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('cistern-ov').classList.add('show');
+  } else if(addMode==='coords'){
+    // handled via mapPickMode
   } else {
-    ['ns-name','ns-number','ns-address','ns-chief','ns-phone','ns-photo'].forEach(id=>document.getElementById(id).value='');
+    const isSub=addMode==='substation';
+    document.getElementById('station-modal-title').textContent=isSub?'🏠 Nueva Sub-Estación':'🚒 Nueva Estación';
+    document.getElementById('station-modal-box').className='modal-box'+(isSub?' blue':'');
+    document.getElementById('ns-save-btn').className='save-btn'+(isSub?' blue':'');
+    ['ns-name','ns-number','ns-address','ns-chief','ns-phone','ns-photo','ns-staff-fixed','ns-staff-vol'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('station-ov').classList.add('show');
+    document.getElementById('station-ov').dataset.stype=addMode;
   }
 });
 
 async function confirmAddStation(){
   if(!pendingLL) return;
+  const isSub=document.getElementById('station-ov').dataset.stype==='substation';
   const name=document.getElementById('ns-name').value.trim();
-  if(!name){alert('El nombre es obligatorio.');return;}
+  if(!name){toast('El nombre es obligatorio.',true);return;}
   const s={
-    name, number:document.getElementById('ns-number').value.trim()||'Estación nueva',
-    address:document.getElementById('ns-address').value.trim()||'—',
-    chief:document.getElementById('ns-chief').value.trim()||'—',
-    phone:document.getElementById('ns-phone').value.trim()||'—',
-    photo:document.getElementById('ns-photo').value.trim()||null,
-    lat:pendingLL.lat, lng:pendingLL.lng,
-    units:{Autobombas:0},
-    coverage:defCoverage(pendingLL.lat,pendingLL.lng)
+    type: isSub?'substation':'station',
+    name: Security.sanitize(name),
+    number: Security.sanitize(document.getElementById('ns-number').value)||'Estación nueva',
+    address: Security.sanitize(document.getElementById('ns-address').value)||'—',
+    chief: Security.sanitize(document.getElementById('ns-chief').value)||'—',
+    phone: Security.sanitize(document.getElementById('ns-phone').value)||'—',
+    staffFixed: Security.sanitizeNumber(document.getElementById('ns-staff-fixed').value),
+    staffVolunteer: Security.sanitizeNumber(document.getElementById('ns-staff-vol').value),
+    photo: Security.sanitizeUrl(document.getElementById('ns-photo').value.trim()),
+    lat: pendingLL.lat, lng: pendingLL.lng,
+    units:{},
+    coverage: defCoverage(pendingLL.lat,pendingLL.lng)
   };
   try {
     const ref=await db.collection('stations').add(s);
     s.id=ref.id;
-    const m=L.marker([s.lat,s.lng],{icon:fireIcon()}).addTo(map);
+    allStations.push(s);
+    const m=L.marker([s.lat,s.lng],{icon:isSub?subIcon():fireIcon()}).addTo(map);
     markerMap[s.id]=m; m.on('click',()=>selectStation(s));
-    document.getElementById('station-ov').classList.remove('show');
-    pendingLL=null;
-    toast('Estación guardada en Firebase ☁️');
+    closeOv('station-ov'); pendingLL=null;
+    toast(`${isSub?'Sub-estación':'Estación'} guardada ☁️`);
   } catch(e){ toast('Error: '+e.message,true); }
 }
 
 async function confirmAddCistern(){
   if(!pendingLL) return;
   const owner=document.getElementById('nc-owner').value.trim();
-  if(!owner){alert('El propietario es obligatorio.');return;}
+  if(!owner){toast('El propietario es obligatorio.',true);return;}
   const c={
-    owner, lat:pendingLL.lat, lng:pendingLL.lng,
-    volume:document.getElementById('nc-volume').value.trim()||'—',
-    phone:document.getElementById('nc-phone').value.trim()||'—',
-    note:document.getElementById('nc-note').value.trim()||'Voluntaria'
+    owner:Security.sanitize(owner), lat:pendingLL.lat, lng:pendingLL.lng,
+    volume:Security.sanitize(document.getElementById('nc-volume').value)||'—',
+    phone:Security.sanitize(document.getElementById('nc-phone').value)||'—',
+    note:Security.sanitize(document.getElementById('nc-note').value)||'Voluntaria'
   };
   try {
     await db.collection('cisterns').add(c);
     addCisternMarker(c);
-    document.getElementById('cistern-ov').classList.remove('show');
-    pendingLL=null;
-    toast('Cisterna guardada en Firebase ☁️');
-  } catch(e){ toast('Error: '+e.message,true); }
-}
-
-function openEditModal(){
-  if(!activeStation||!isAdmin) return;
-  const types=['Autobombas','Escaleras','Cisterneros','Salvamento','Rescate','Ambulancias','Motobombas'];
-  document.getElementById('modal-fields').innerHTML=types.map(u=>
-    `<div class="mf"><label>${u}</label><input type="number" min="0" id="u_${u}" value="${activeStation.units?.[u]||0}"/></div>`).join('');
-  document.getElementById('units-ov').classList.add('show');
-}
-function closeModal(){ document.getElementById('units-ov').classList.remove('show'); }
-async function saveUnits(){
-  if(!activeStation) return;
-  const types=['Autobombas','Escaleras','Cisterneros','Salvamento','Rescate','Ambulancias','Motobombas'];
-  const units={};
-  types.forEach(u=>{const v=parseInt(document.getElementById(`u_${u}`).value)||0; if(v>0) units[u]=v;});
-  try {
-    await db.collection('stations').doc(activeStation.id).update({units});
-    activeStation.units=units;
-    renderUnits(activeStation);
-    closeModal();
-    toast('Unidades guardadas en Firebase ☁️');
+    closeOv('cistern-ov'); pendingLL=null;
+    toast('Cisterna guardada ☁️');
   } catch(e){ toast('Error: '+e.message,true); }
 }
 
@@ -516,9 +928,285 @@ function defCoverage(lat,lng){
   return [{la:lat+d,ln:lng-d},{la:lat+d,ln:lng+d},{la:lat-d,ln:lng+d},{la:lat-d,ln:lng-d},{la:lat+d,ln:lng-d}];
 }
 
-// Close modals clicking outside
+// ═══════════════════════════════════════════════════
+// EDIT STATION INFO
+// ═══════════════════════════════════════════════════
+function openEditStation(){
+  if(!activeStation||!isAdmin) return;
+  const s=activeStation;
+  const isSub=s.type==='substation';
+  document.getElementById('edit-station-title').textContent=isSub?'✏️ Editar Sub-Estación':'✏️ Editar Estación';
+  document.getElementById('es-save-btn').className='save-btn'+(isSub?' blue':'');
+  document.getElementById('es-name').value=s.name||'';
+  document.getElementById('es-number').value=s.number||'';
+  document.getElementById('es-address').value=s.address||'';
+  document.getElementById('es-chief').value=s.chief||'';
+  document.getElementById('es-phone').value=s.phone||'';
+  document.getElementById('es-staff-fixed').value=s.staffFixed||0;
+  document.getElementById('es-staff-vol').value=s.staffVolunteer||0;
+  document.getElementById('es-photo').value=s.photo||'';
+  document.getElementById('edit-station-ov').classList.add('show');
+}
+async function saveStationInfo(){
+  if(!activeStation) return;
+  const name=document.getElementById('es-name').value.trim();
+  if(!name){toast('El nombre es obligatorio.',true);return;}
+  const updates={
+    name: Security.sanitize(name),
+    number: Security.sanitize(document.getElementById('es-number').value),
+    address: Security.sanitize(document.getElementById('es-address').value),
+    chief: Security.sanitize(document.getElementById('es-chief').value),
+    phone: Security.sanitize(document.getElementById('es-phone').value),
+    staffFixed: Security.sanitizeNumber(document.getElementById('es-staff-fixed').value),
+    staffVolunteer: Security.sanitizeNumber(document.getElementById('es-staff-vol').value),
+    photo: Security.sanitizeUrl(document.getElementById('es-photo').value.trim())
+  };
+  try {
+    await db.collection('stations').doc(activeStation.id).update(updates);
+    Object.assign(activeStation,updates);
+    const idx=allStations.findIndex(x=>x.id===activeStation.id);
+    if(idx>=0) Object.assign(allStations[idx],updates);
+    renderPanel(activeStation);
+    closeOv('edit-station-ov');
+    toast('Información actualizada ☁️');
+  } catch(e){ toast('Error: '+e.message,true); }
+}
+
+// ═══════════════════════════════════════════════════
+// EDIT UNITS
+// ═══════════════════════════════════════════════════
+const UNIT_TYPES=['Camiones Bomba','Camión Escalera','Camión Cisterna','Salvamento','Rescate','Ambulancias','Motobombas'];
+function openEditUnits(){
+  if(!activeStation||!isAdmin) return;
+  document.getElementById('modal-fields').innerHTML=UNIT_TYPES.map(u=>
+    `<div class="mf"><label>${u}</label><input type="number" min="0" max="99" id="u_${u.replace(/ /g,'_')}" value="${activeStation.units?.[u]||0}"/></div>`).join('');
+  document.getElementById('units-ov').classList.add('show');
+}
+async function saveUnits(){
+  if(!activeStation) return;
+  const units={};
+  UNIT_TYPES.forEach(u=>{
+    const v=Security.sanitizeNumber(document.getElementById(`u_${u.replace(/ /g,'_')}`).value);
+    if(v>0) units[u]=v;
+  });
+  try {
+    await db.collection('stations').doc(activeStation.id).update({units});
+    activeStation.units=units;
+    const idx=allStations.findIndex(x=>x.id===activeStation.id);
+    if(idx>=0) allStations[idx].units=units;
+    renderUnits(activeStation);
+    closeOv('units-ov');
+    toast('Unidades guardadas ☁️');
+  } catch(e){ toast('Error: '+e.message,true); }
+}
+
+// ═══════════════════════════════════════════════════
+// EDIT COORDS / COVERAGE
+// ═══════════════════════════════════════════════════
+let editingCoverage=null;
+
+function openEditCoords(){
+  if(!activeStation||!isAdmin){ toast('Selecciona una estación primero.',true); return; }
+  editingCoverage=[...(activeStation.coverage||defCoverage(activeStation.lat,activeStation.lng)).map(p=>({...p}))];
+  renderCoordList();
+  document.getElementById('map-pick-status').textContent='';
+  document.getElementById('coords-ov').classList.add('show');
+}
+
+function renderCoordList(){
+  const list=document.getElementById('coord-list');
+  list.innerHTML=editingCoverage.map((p,i)=>`
+    <div class="coord-row" id="cr_${i}">
+      <input type="number" step="0.0001" value="${p.la||p[0]}" id="cla_${i}" placeholder="Lat" onchange="updateCoordPreview()"/>
+      <input type="number" step="0.0001" value="${p.ln||p[1]}" id="cln_${i}" placeholder="Lng" onchange="updateCoordPreview()"/>
+      <button class="coord-del" onclick="removeCoordRow(${i})">✕</button>
+    </div>`).join('');
+  updateCoordPreview();
+}
+
+function addCoordRow(){
+  const lat=activeStation?activeStation.lat:18.9;
+  const lng=activeStation?activeStation.lng:-70.1;
+  editingCoverage.push({la:lat,ln:lng});
+  renderCoordList();
+}
+
+function removeCoordRow(i){
+  editingCoverage.splice(i,1);
+  renderCoordList();
+}
+
+function updateCoordPreview(){
+  if(!editingCoverage) return;
+  const pts=editingCoverage.map((_,i)=>{
+    const la=parseFloat(document.getElementById(`cla_${i}`)?.value||0);
+    const ln=parseFloat(document.getElementById(`cln_${i}`)?.value||0);
+    return [la,ln];
+  }).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
+  if(activeZone){ map.removeLayer(activeZone); activeZone=null; }
+  if(pts.length>2){
+    const color=activeStation?.type==='substation'?'#1565C0':'#C8102E';
+    activeZone=L.polygon(pts,{color,fillColor:color,fillOpacity:0.2,weight:2.5,dashArray:'4,4'}).addTo(map);
+  }
+}
+
+function toggleMapPickMode(){
+  mapPickMode=!mapPickMode;
+  const btn=document.getElementById('map-pick-btn');
+  const hint=document.getElementById('map-pick-status');
+  if(mapPickMode){
+    btn.textContent='🗺️ Modo mapa ACTIVO — haz clic para añadir puntos';
+    btn.style.background='rgba(255,152,0,0.35)';
+    hint.textContent='Haz clic en el mapa para añadir puntos de cobertura';
+  } else {
+    btn.textContent='🗺️ Activar clic en mapa para añadir puntos';
+    btn.style.background='rgba(255,152,0,0.15)';
+    hint.textContent='';
+  }
+}
+
+function addCoordFromMap(latlng){
+  if(!editingCoverage) return;
+  editingCoverage.push({la:latlng.lat,ln:latlng.lng});
+  renderCoordList();
+}
+
+async function saveCoords(){
+  if(!activeStation) return;
+  const coverage=editingCoverage.map((_,i)=>({
+    la: Security.sanitizeCoord(document.getElementById(`cla_${i}`)?.value),
+    ln: Security.sanitizeCoord(document.getElementById(`cln_${i}`)?.value)
+  }));
+  if(coverage.length<3){toast('Mínimo 3 puntos para definir una zona.',true);return;}
+  try {
+    await db.collection('stations').doc(activeStation.id).update({coverage});
+    activeStation.coverage=coverage;
+    const idx=allStations.findIndex(x=>x.id===activeStation.id);
+    if(idx>=0) allStations[idx].coverage=coverage;
+    mapPickMode=false;
+    document.getElementById('map-pick-btn').textContent='🗺️ Activar clic en mapa para añadir puntos';
+    closeOv('coords-ov');
+    // Refresh visible zone
+    if(activeZone){map.removeLayer(activeZone);activeZone=null;}
+    const covLL=coverage.map(p=>[p.la,p.ln]);
+    const color=activeStation.type==='substation'?'#1565C0':'#C8102E';
+    activeZone=L.polygon(covLL,{color,fillColor:color,fillOpacity:0.18,weight:2,dashArray:'6,4'}).addTo(map);
+    toast('Zona de cobertura actualizada ☁️');
+  } catch(e){ toast('Error: '+e.message,true); }
+}
+
+// ═══════════════════════════════════════════════════
+// PHOTO UPLOAD
+// ═══════════════════════════════════════════════════
+function onPhotoClick(){
+  if(!isAdmin||!activeStation) return;
+  document.getElementById('photo-upload-input').click();
+}
+
+function handlePhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const allowedTypes=['image/jpeg','image/png','image/webp','image/gif'];
+  if(!allowedTypes.includes(file.type)){toast('Formato no válido. Usa JPG, PNG o WebP.',true);return;}
+  if(file.size>5*1024*1024){toast('La imagen no puede superar 5MB.',true);return;}
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    const dataUrl=e.target.result;
+    try {
+      await db.collection('stations').doc(activeStation.id).update({photo:dataUrl});
+      activeStation.photo=dataUrl;
+      const idx=allStations.findIndex(x=>x.id===activeStation.id);
+      if(idx>=0) allStations[idx].photo=dataUrl;
+      renderPanel(activeStation);
+      toast('Foto actualizada ☁️');
+    } catch(err){ toast('Error guardando foto: '+err.message,true); }
+  };
+  reader.readAsDataURL(file);
+  event.target.value='';
+}
+
+// ═══════════════════════════════════════════════════
+// DELETE STATION
+// ═══════════════════════════════════════════════════
+async function deleteActiveStation(){
+  if(!activeStation||!isAdmin) return;
+  if(!confirm(`¿Eliminar "${activeStation.name}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await db.collection('stations').doc(activeStation.id).delete();
+    map.removeLayer(markerMap[activeStation.id]);
+    delete markerMap[activeStation.id];
+    const idx=allStations.findIndex(x=>x.id===activeStation.id);
+    if(idx>=0) allStations.splice(idx,1);
+    if(activeZone){map.removeLayer(activeZone);activeZone=null;}
+    activeStation=null;
+    document.getElementById('panel').classList.remove('open');
+    toast('Estación eliminada');
+  } catch(e){ toast('Error: '+e.message,true); }
+}
+
+// ═══════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════
+function openDashboard(){
+  if(!isAdmin) return;
+  const stations=allStations.filter(s=>s.type==='station');
+  const subs=allStations.filter(s=>s.type==='substation');
+  const totalFixed=allStations.reduce((a,s)=>a+(s.staffFixed||0),0);
+  const totalVol=allStations.reduce((a,s)=>a+(s.staffVolunteer||0),0);
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${stations.length}</div><div class="stat-label">Estaciones</div></div>
+    <div class="stat-card"><div class="stat-val blue">${subs.length}</div><div class="stat-label">Sub-Estaciones</div></div>
+    <div class="stat-card"><div class="stat-val gold">${totalFixed}</div><div class="stat-label">Personal Fijo</div></div>
+    <div class="stat-card"><div class="stat-val">${totalVol}</div><div class="stat-label">Voluntarios</div></div>`;
+  document.getElementById('dash-stations').innerHTML=stations.map(s=>`
+    <div class="dash-card" onclick="onDashCardClick('${s.id}')">
+      <div class="card-type">Estación Principal</div>
+      <h3>${Security.sanitize(s.name)}</h3>
+      <p>${Security.sanitize(s.number)}</p>
+      <p style="margin-top:4px">${(s.staffFixed||0)} fijos · ${(s.staffVolunteer||0)} vol.</p>
+    </div>`).join('')||'<p style="color:var(--text-dim);font-size:0.8rem">Sin estaciones registradas.</p>';
+  document.getElementById('dash-substations').innerHTML=subs.map(s=>`
+    <div class="dash-card sub" onclick="onDashCardClick('${s.id}')">
+      <div class="card-type">Sub-Estación</div>
+      <h3>${Security.sanitize(s.name)}</h3>
+      <p>${Security.sanitize(s.number)}</p>
+      <p style="margin-top:4px">${(s.staffFixed||0)} fijos · ${(s.staffVolunteer||0)} vol.</p>
+    </div>`).join('')||'<p style="color:var(--text-dim);font-size:0.8rem">Sin sub-estaciones registradas.</p>';
+  document.getElementById('dashboard-ov').classList.add('show');
+}
+function closeDashboard(){ document.getElementById('dashboard-ov').classList.remove('show'); }
+function onDashCardClick(id){
+  const s=allStations.find(x=>x.id===id);
+  if(s){ closeDashboard(); selectStation(s); }
+}
+function startAddStation(type){
+  if(!editMode) toggleEditMode();
+  setAddMode(type);
+  toast(`Haz clic en el mapa para colocar la ${type==='substation'?'sub-estación':'estación'}`);
+}
+function startAddCistern(){
+  if(!editMode) toggleEditMode();
+  setAddMode('cistern');
+  toast('Haz clic en el mapa para colocar la cisterna');
+}
+async function seedDataConfirm(){
+  if(!confirm('¿Reiniciar datos iniciales? Esto añade las estaciones de muestra (no borra las existentes).')) return;
+  closeDashboard();
+  for(const s of SEED_STATIONS){
+    try{ await db.collection('stations').add(s); } catch(e){}
+  }
+  toast('Datos reiniciados. Recarga la página para ver cambios.');
+}
+
+// Close modals on outside click
 document.querySelectorAll('.modal-ov').forEach(ov=>{
   ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('show'); });
+});
+// Prevent XSS via keyboard injection in coord inputs
+document.addEventListener('keydown',e=>{
+  if(['<','>','"',"'",'`'].includes(e.key)&&e.target.matches('.coord-row input')){
+    e.preventDefault();
+  }
 });
 
 // ── Start ──
